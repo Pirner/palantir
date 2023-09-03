@@ -38,6 +38,7 @@ def main():
     assert len(im_paths) == len(mask_paths)
     print('[INFO] found {0} data points'.format(len(im_paths)))
     df = pd.read_csv(os.path.join(r'C:\data\drone_aerial_segmentation\archive', 'colormaps.csv'), sep=';')
+    print(torch.cuda.is_available())
 
     # create segmentation model with pretrained encoder
     model = smp.FPN(
