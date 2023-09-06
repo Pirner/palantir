@@ -25,6 +25,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 
 ENCODER = 'se_resnext50_32x4d'
+ENCODER = 'efficientnet-b5'
 ENCODER_WEIGHTS = 'imagenet'
 CLASSES = ['car']
 ACTIVATION = 'softmax2d'  # could be None for logits or 'softmax2d' for multiclass segmentation
@@ -60,7 +61,7 @@ def create_in_memory_dataset(im_paths, mask_paths, im_w, im_h, transforms):
 
 def main():
     im_w = 640
-    im_h = 448
+    im_h = 640
     dataset_path = r'C:\data\drone_aerial_segmentation\archive\preprocessed_data'
     mask_paths = glob.glob(os.path.join(dataset_path, '**/*mask.png'), recursive=True)
     im_paths = glob.glob(os.path.join(dataset_path, '**/*im.png'), recursive=True)
@@ -125,7 +126,7 @@ def main():
     jaccard = torchmetrics.JaccardIndex(num_classes=24, task='multiclass')
 
     optimizer = torch.optim.Adam([
-        dict(params=model.parameters(), lr=0.0001),
+        dict(params=model.parameters(), lr=0.001),
     ])
 
     trainer = SegmentationTrainer()

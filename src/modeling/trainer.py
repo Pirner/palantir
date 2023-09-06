@@ -108,6 +108,7 @@ class SegmentationTrainer:
         for i, epoch in enumerate(range(epochs)):
             print('\nrunning {0} of {1}\n'.format(i + 1, epochs))
             self.run_epoch(model, train_loader, optimizer, loss_func, device)
+            print(self.avg_losses)
 
 
 def run_epoch(model, optimizer, data_loader, loss_func, device, results, score_funcs, prefix="", desc=None):
