@@ -28,6 +28,87 @@ def moveTo(obj, device):
         return obj
 
 
+class SegmentationTrainer:
+    def __init__(self):
+        self.current_epoch = 0
+        self.avg_losses = []
+
+    def run_epoch(
+            self,
+            model,
+            train_loader,
+            optimizer,
+            loss_fn,
+            device,
+    ):
+        """
+        run epoch for the segmentation trainer
+        :param model: model to train
+        :param train_loader: training data loader
+        :param optimizer: optimizer to train with
+        :param loss_fn: loss function to train w ith
+        :param device: device to train on
+        :return:
+        """
+        running_loss = 0.
+        last_loss = 0.
+        losses = []
+
+        for inputs, labels in tqdm(train_loader):
+            # Move the batch to the device we are using.
+            inputs = moveTo(inputs, device)
+            labels = moveTo(labels, device)
+
+            y_hat = model(inputs)  # this just computed f_Θ(x(i))
+            loss = loss_fn(y_hat, labels)
+            loss.backward()
+
+            # Adjust learning weights
+            optimizer.step()
+
+            # Gather data and report
+            running_loss += loss.item()
+            losses.append(loss.item())
+
+        self.avg_losses.append(np.mean(losses))
+        return last_loss
+
+    def train_network(
+            self,
+            model,
+            loss_func,
+            train_loader,
+            val_loader=None,
+            test_loader=None,
+            score_funcs=None,
+            epochs=50,
+            device="cpu",
+            checkpoint_file=None,
+            optimizer=None,
+            lr_schedule=None
+    ):
+        """
+        train a network with all the data
+        :param model: model to train
+        :param loss_func: loss function to apply
+        :param train_loader: train data loader
+        :param val_loader: validation data loader
+        :param test_loader: test data loader
+        :param score_funcs: score functions
+        :param epochs: epochs to run
+        :param device: device to put data on
+        :param checkpoint_file: file to save model
+        :param optimizer: optimizer to use
+        :param lr_schedule: scheduler for learning rate
+        :return:
+        """
+        model.to(device)
+
+        for i, epoch in enumerate(range(epochs)):
+            print('\nrunning {0} of {1}\n'.format(i + 1, epochs))
+            self.run_epoch(model, train_loader, optimizer, loss_func, device)
+
+
 def run_epoch(model, optimizer, data_loader, loss_func, device, results, score_funcs, prefix="", desc=None):
     """
     model -- the PyTorch model / "Module" to run for one epoch
@@ -58,7 +139,7 @@ def run_epoch(model, optimizer, data_loader, loss_func, device, results, score_f
             optimizer.zero_grad()
 
         # Now we are just grabbing some information we would like to have
-        running_loss.append(loss.item())
+        # running_loss.append(loss.detach().item())
 
         if len(score_funcs) > 0 and isinstance(labels, torch.Tensor):
             # moving labels & predictions back to CPU for computing / storing predictions
