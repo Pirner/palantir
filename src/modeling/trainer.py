@@ -61,10 +61,11 @@ class SegmentationTrainer:
 
             y_hat = model(inputs)  # this just computed f_Θ(x(i))
             loss = loss_fn(y_hat, labels)
-            loss.backward()
 
-            # Adjust learning weights
-            optimizer.step()
+            if model.training:
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
             # Gather data and report
             running_loss += loss.item()

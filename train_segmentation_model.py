@@ -17,6 +17,7 @@ from src.modeling.data_loading import AerialSegmentationSemanticDataset, SegData
 from src.modeling.augmentations import get_training_augmentation, get_validation_augmentation, get_preprocessing
 import segmentation_models_pytorch as smp
 from src.modeling.trainer import train_network, SegmentationTrainer
+from src.modeling.losses import DiceBCELoss
 
 import ssl
 
@@ -119,6 +120,7 @@ def main():
 
     loss_func = smp.losses.DiceLoss('multiclass')
     loss_fn = nn.CrossEntropyLoss()
+    loss_fn = DiceBCELoss()
 
     jaccard = torchmetrics.JaccardIndex(num_classes=24, task='multiclass')
 
@@ -132,7 +134,7 @@ def main():
         loss_fn,
         train_loader,
         test_loader=None,
-        epochs=50,
+        epochs=10,
         optimizer=optimizer,
         lr_schedule=None,
         score_funcs={'jaccard': jaccard},

@@ -86,5 +86,6 @@ class AerialSegmentationSemanticDataset(Dataset):
         mask = PalantirMaskUtils.convert_mask_from_id_into_id(mask.detach().cpu().numpy())
         mask = torch.from_numpy(mask.astype(float))
         mask = mask.permute(2, 0, 1)
+        mask = mask.type(torch.FloatTensor)
 
         return image, mask
