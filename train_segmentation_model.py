@@ -98,7 +98,9 @@ def main():
     )
 
     preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
-    # preprocessing_fn = None
+
+    im_paths = im_paths[:40]
+    mask_paths = mask_paths[:40]
 
     train_dataset = AerialSegmentationSemanticDataset(
         im_paths,
@@ -108,28 +110,20 @@ def main():
         # preprocessing=get_preprocessing(preprocessing_fn),
         preprocessing=None,
     )
-    # for x, y in train_dataset:
-    # exit(0)
-    # train_dataset = create_in_memory_dataset(
-    #     im_paths=im_paths,
-    #     mask_paths=mask_paths,
-    #     im_h=im_h,
-    #     im_w=im_w,
-    #     transforms=train_transform,
-    # )
+
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
 
     loss_func = smp.losses.DiceLoss('multiclass')
     loss_fn = nn.CrossEntropyLoss()
-    loss_fn = DiceBCELoss()
+    # loss_fn = DiceBCELoss()
 
     jaccard = torchmetrics.JaccardIndex(num_classes=24, task='multiclass')
 
     optimizer = torch.optim.Adam([
-        dict(params=model.parameters(), lr=0.001),
+        dict(params=model.parameters(), lr=0.01),
     ])
 
-    trainer = SegmentationTrainer()
+    trainer = SegmentationTrainer(checkpoint_path='model.pt')
     trainer.train_network(
         model,
         loss_fn,

@@ -1,5 +1,6 @@
 import time
 
+from torchmetrics import JaccardIndex
 import torch
 import pandas as pd
 from tqdm import tqdm
@@ -29,9 +30,12 @@ def moveTo(obj, device):
 
 
 class SegmentationTrainer:
-    def __init__(self):
+    def __init__(self, checkpoint_path: str):
         self.current_epoch = 0
         self.avg_losses = []
+        self.checkpoint_path = checkpoint_path
+        self.jaccard = JaccardIndex(task="multiclass", num_classes=24)
+        self.jaccard_scores = []
 
     def run_epoch(
             self,
@@ -53,6 +57,7 @@ class SegmentationTrainer:
         running_loss = 0.
         last_loss = 0.
         losses = []
+        jaccard_scores = []
 
         for inputs, labels in tqdm(train_loader):
             # Move the batch to the device we are using.
@@ -60,6 +65,7 @@ class SegmentationTrainer:
             labels = moveTo(labels, device)
 
             y_hat = model(inputs)  # this just computed f_Θ(x(i))
+            y_hat_argmax = y_hat.argmax(axis=1)
             loss = loss_fn(y_hat, labels)
 
             if model.training:
@@ -67,10 +73,15 @@ class SegmentationTrainer:
                 optimizer.step()
                 optimizer.zero_grad()
 
+            # score the model
+            jaccard_score = self.jaccard(moveTo(y_hat_argmax, 'cpu'), moveTo(labels, 'cpu'))
+
             # Gather data and report
             running_loss += loss.item()
             losses.append(loss.item())
+            jaccard_scores.append(jaccard_score.item())
 
+        self.jaccard_scores.append(np.mean(jaccard_scores))
         self.avg_losses.append(np.mean(losses))
         return last_loss
 
@@ -108,7 +119,14 @@ class SegmentationTrainer:
         for i, epoch in enumerate(range(epochs)):
             print('\nrunning {0} of {1}\n'.format(i + 1, epochs))
             self.run_epoch(model, train_loader, optimizer, loss_func, device)
+            # torch.save({
+            #     'epoch': epoch,
+            #     'model_state_dict': model.state_dict(),
+            #     'optimizer_state_dict': optimizer.state_dict(),
+            #     # 'results': results
+            # }, checkpoint_file)
             print(self.avg_losses)
+            print(self.jaccard_scores)
 
 
 def run_epoch(model, optimizer, data_loader, loss_func, device, results, score_funcs, prefix="", desc=None):
