@@ -10,7 +10,7 @@ import segmentation_models_pytorch as smp
 
 from src.modeling.transformation import TransformerConfig
 from src.modeling.data_loading import DroneDataset
-from src.modeling.training import fit
+from src.modeling.training import fit, DroneTrainer
 
 
 def create_df(im_data_path):
@@ -67,10 +67,12 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
-    sched = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
-                                                steps_per_epoch=len(train_loader))
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch, steps_per_epoch=len(train_loader))
 
-    history = fit(epoch, model, train_loader, val_loader, criterion, optimizer, sched, device=device)
+    trainer = DroneTrainer(device=device, optimizer=optimizer, scheduler=scheduler, criterion=criterion)
+    trainer.train_model(epoch, model, train_loader, val_loader)
+    exit(0)
+    history = fit(epoch, model, train_loader, val_loader, criterion, optimizer, scheduler, device=device)
 
 
 if __name__ == '__main__':
