@@ -62,14 +62,20 @@ def main():
                      decoder_channels=[256, 128, 64, 32, 16])
 
     max_lr = 1e-3
-    epoch = 15
+    epoch = 30
     weight_decay = 1e-4
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch, steps_per_epoch=len(train_loader))
 
-    trainer = DroneTrainer(device=device, optimizer=optimizer, scheduler=scheduler, criterion=criterion)
+    trainer = DroneTrainer(
+        device=device,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        criterion=criterion,
+        model_path='model.pt'
+    )
     trainer.train_model(epoch, model, train_loader, val_loader)
     exit(0)
     history = fit(epoch, model, train_loader, val_loader, criterion, optimizer, scheduler, device=device)
