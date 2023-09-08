@@ -126,92 +126,28 @@ class DroneTrainer:
 
         for e in range(epochs):
             since = time.time()
-            # running_loss = 0
-            # iou_score = 0
-            # accuracy = 0
-            # training loop
+
             model.train()
             self.run_training_epoch(model, train_loader)
             self.run_validation_epoch(model, val_loader)
-            # for i, data in enumerate(tqdm(train_loader)):
-            #     # training phase
-            #     image_tiles, mask_tiles = data
-            #     if patch:
-            #         bs, n_tiles, c, h, w = image_tiles.size()
-            #
-            #         image_tiles = image_tiles.view(-1, c, h, w)
-            #         mask_tiles = mask_tiles.view(-1, h, w)
-            #
-            #     image = image_tiles.to(self.device)
-            #     mask = mask_tiles.to(self.device)
-            #     # forward
-            #     output = model(image)
-            #     loss = self.criterion(output, mask)
-            #     # evaluation metrics
-            #     iou_score += mIoU(output, mask)
-            #     accuracy += pixel_accuracy(output, mask)
-            #     # backward
-            #     loss.backward()
-            #     self.optimizer.step()  # update weight
-            #     self.optimizer.zero_grad()  # reset gradient
-            #
-            #     # step the learning rate
-            #     self.lrs.append(get_lr(self.optimizer))
-            #     self.scheduler.step()
-            #
-            #     running_loss += loss.item()
 
-            # model.eval()
-            # test_loss = 0
-            # test_accuracy = 0
-            # val_iou_score = 0
-            # # validation loop
-            # with torch.no_grad():
-            #     for i, data in enumerate(tqdm(val_loader)):
-            #         # reshape to 9 patches from single image, delete batch size
-            #         image_tiles, mask_tiles = data
+            # model saving functionality
+            # if min_loss > self.test_losses[-1]:
+            #     print('Loss Decreasing.. {:.3f} >> {:.3f} '.format(min_loss, self.test_losses[-1]))
+            #     min_loss = self.test_losses[-1]
+            #     decrease += 1
+            #     if decrease % 5 == 0:
+            #         print('saving model...')
+            #         torch.save(model, 'Unet-Mobilenet_v2_mIoU-{:.3f}.pt'.format(self.test_losses[-1]))
             #
-            #         if patch:
-            #             bs, n_tiles, c, h, w = image_tiles.size()
-            #
-            #             image_tiles = image_tiles.view(-1, c, h, w)
-            #             mask_tiles = mask_tiles.view(-1, h, w)
-            #
-            #         image = image_tiles.to(self.device)
-            #         mask = mask_tiles.to(self.device)
-            #         output = model(image)
-            #         # evaluation metrics
-            #         val_iou_score += mIoU(output, mask)
-            #         test_accuracy += pixel_accuracy(output, mask)
-            #         # loss
-            #         loss = self.criterion(output, mask)
-            #         test_loss += loss.item()
+            # if self.test_losses[-1] > min_loss:
+            #     not_improve += 1
+            #     min_loss = self.test_losses[-1]
+            #     print(f'Loss Not Decrease for {not_improve} time')
+            #     if not_improve == 7:
+            #         print('Loss not decrease for 7 times, Stop Training')
+            #         break
 
-            # calculate mean for each batch
-            # self.train_losses.append(running_loss / len(train_loader))
-            # self.test_losses.append(test_loss / len(val_loader))
-
-            if min_loss > self.test_losses[-1]:
-                print('Loss Decreasing.. {:.3f} >> {:.3f} '.format(min_loss, self.test_losses[-1]))
-                min_loss = self.test_losses[-1]
-                decrease += 1
-                if decrease % 5 == 0:
-                    print('saving model...')
-                    torch.save(model, 'Unet-Mobilenet_v2_mIoU-{:.3f}.pt'.format(self.test_losses[-1]))
-
-            if self.test_losses[-1] > min_loss:
-                not_improve += 1
-                min_loss = self.test_losses[-1]
-                print(f'Loss Not Decrease for {not_improve} time')
-                if not_improve == 7:
-                    print('Loss not decrease for 7 times, Stop Training')
-                    break
-
-            # iou
-            # self.train_iou.append(iou_score / len(train_loader))
-            # self.train_acc.append(accuracy / len(train_loader))
-            # self.val_iou.append(val_iou_score / len(val_loader))
-            # self.val_acc.append(test_accuracy / len(val_loader))
             print("Epoch:{}/{}..".format(e + 1, epochs),
                   "Train Loss: {:.3f}..".format(self.train_losses[-1]),
                   "Val Loss: {:.3f}..".format(self.test_losses[-1]),

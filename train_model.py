@@ -62,7 +62,7 @@ def main():
                      decoder_channels=[256, 128, 64, 32, 16])
 
     max_lr = 1e-3
-    epoch = 30
+    epoch = 50
     weight_decay = 1e-4
 
     criterion = nn.CrossEntropyLoss()
