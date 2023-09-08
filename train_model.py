@@ -58,8 +58,14 @@ def main():
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
 
-    model = smp.Unet('mobilenet_v2', encoder_weights='imagenet', classes=23, activation=None, encoder_depth=5,
-                     decoder_channels=[256, 128, 64, 32, 16])
+    model = smp.Unet(
+        'mobilenet_v2',
+        encoder_weights='imagenet',
+        classes=23,
+        activation=None,
+        encoder_depth=5,
+        decoder_channels=[256, 128, 64, 32, 16],
+    )
 
     max_lr = 1e-3
     epoch = 50
