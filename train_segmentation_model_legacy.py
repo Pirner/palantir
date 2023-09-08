@@ -12,12 +12,12 @@ import albumentations as A
 import torch
 import torchvision
 
-from src.vision.mask_utils import PalantirMaskUtils
-from src.modeling.data_loading import AerialSegmentationSemanticDataset, SegDatasetInMemory
-from src.modeling.augmentations import get_training_augmentation, get_validation_augmentation, get_preprocessing
+from src_legacy.vision.mask_utils import PalantirMaskUtils
+from src_legacy.modeling.data_loading import AerialSegmentationSemanticDataset, SegDatasetInMemory
+from src_legacy.modeling.augmentations import get_training_augmentation, get_validation_augmentation, get_preprocessing
 import segmentation_models_pytorch as smp
-from src.modeling.trainer import train_network, SegmentationTrainer
-from src.modeling.losses import DiceBCELoss
+from src_legacy.modeling.trainer import train_network, SegmentationTrainer
+from src_legacy.modeling.losses import DiceBCELoss
 
 import ssl
 

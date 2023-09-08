@@ -1,91 +1,55 @@
-import cv2
-import torch
-import numpy as np
+import os
+
 from torch.utils.data import Dataset
-
-from src.vision.mask_utils import PalantirMaskUtils
-
-
-class SegDatasetInMemory(Dataset):
-    def __init__(self, im_data, mask_data, augmentation=None, preprocessing=None):
-        """
-        segmentation dataset
-        :param im_data: image data to load
-        :param mask_data: mask to load
-        :param augmentation:
-        :param preprocessing:
-        """
-        self.im_data = im_data
-        self.mask_data = mask_data
-        self.augmentation = augmentation
-        self.preprocessing = preprocessing
-
-    def __len__(self):
-        return len(self.im_data)
-
-    def __getitem__(self, i):
-        # image = cv2.imread(self.im_paths[i])
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        # mask = cv2.imread(self.mask_paths[i], 0)
-        image = self.im_data[i]
-        mask = self.mask_data[i]
-        # print(self.im_paths[i])
-
-        # apply augmentations
-        if self.augmentation:
-            sample = self.augmentation(image=image, mask=mask)
-            image, mask = sample['image'], sample['mask']
-
-        # apply preprocessing
-        if self.preprocessing:
-            sample = self.preprocessing(image=image, mask=mask)
-            image, mask = sample['image'], sample['mask']
-
-        mask = PalantirMaskUtils.convert_mask_from_id_into_id(mask.detach().cpu().numpy())
-        mask = torch.from_numpy(mask.astype(float))
-        mask = mask.permute(2, 0, 1)
-
-        return image, mask
+from torchvision import transforms as T
+import torch
+from PIL import Image
+import cv2
 
 
-class AerialSegmentationSemanticDataset(Dataset):
-    def __init__(self, im_paths, mask_paths, augmentation=None, preprocessing=None):
-        """
+class DroneDataset(Dataset):
 
-        :param im_paths:
-        :param mask_paths:
-        :param augmentation:
-        :param preprocessing:
-        """
-        self.im_paths = im_paths
-        self.mask_paths = mask_paths
-        self.augmentation = augmentation
-        self.preprocessing = preprocessing
+    def __init__(self, img_path, mask_path, X, mean, std, transform=None, patch=False):
+        self.img_path = img_path
+        self.mask_path = mask_path
+        self.X = X
+        self.transform = transform
+        self.patches = patch
+        self.mean = mean
+        self.std = std
 
     def __len__(self):
-        return len(self.im_paths)
+        return len(self.X)
 
-    def __getitem__(self, i):
-        image = cv2.imread(self.im_paths[i])
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_paths[i], 0)
-        # mask = np.expand_dims(mask, axis=-1)
+    def __getitem__(self, idx):
+        img = cv2.imread(self.img_path + os.sep + self.X[idx] + '.jpg')
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.mask_path + os.sep + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
 
-        # print(self.im_paths[i])
+        if self.transform is not None:
+            aug = self.transform(image=img, mask=mask)
+            img = Image.fromarray(aug['image'])
+            mask = aug['mask']
 
-        # apply augmentations
-        if self.augmentation:
-            sample = self.augmentation(image=image, mask=mask)
-            image, mask = sample['image'], sample['mask']
+        if self.transform is None:
+            img = Image.fromarray(img)
 
-        # apply preprocessing
-        if self.preprocessing:
-            sample = self.preprocessing(image=image, mask=mask)
-            image, mask = sample['image'], sample['mask']
+        t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
+        img = t(img)
+        mask = torch.from_numpy(mask).long()
 
-        # mask = PalantirMaskUtils.convert_mask_from_id_into_id(mask.detach().cpu().numpy())
-        # mask = torch.from_numpy(mask.astype(float))
-        # mask = mask.permute(2, 0, 1)
-        mask = mask.type(torch.LongTensor)
+        if self.patches:
+            img, mask = self.tiles(img, mask)
 
-        return image, mask
+        return img, mask
+
+    def tiles(self, img, mask):
+
+        img_patches = img.unfold(1, 512, 512).unfold(2, 768, 768)
+        img_patches = img_patches.contiguous().view(3, -1, 512, 768)
+        img_patches = img_patches.permute(1, 0, 2, 3)
+
+        mask_patches = mask.unfold(0, 512, 512).unfold(1, 768, 768)
+        mask_patches = mask_patches.contiguous().view(-1, 512, 768)
+
+        return img_patches, mask_patches

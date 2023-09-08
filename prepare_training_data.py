@@ -4,7 +4,7 @@ import glob
 from tqdm import tqdm
 import cv2
 
-from src.vision.preprocessing import PalantirPreprocessor
+from src_legacy.vision.preprocessing import PalantirPreprocessor
 
 
 def main():
