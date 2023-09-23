@@ -62,7 +62,8 @@ def main():
         'mobilenet_v2',
         encoder_weights='imagenet',
         classes=23,
-        activation=None,
+        # activation=None,
+        activation='softmax',
         encoder_depth=5,
         decoder_channels=[256, 128, 64, 32, 16],
     )
@@ -80,7 +81,7 @@ def main():
         optimizer=optimizer,
         scheduler=scheduler,
         criterion=criterion,
-        model_path='model.pt'
+        model_path='model_softmax.pt'
     )
     trainer.train_model(epoch, model, train_loader, val_loader)
     exit(0)
