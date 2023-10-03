@@ -1,10 +1,59 @@
 import os
 
+import numpy as np
+
 from torch.utils.data import Dataset
 from torchvision import transforms as T
 import torch
 from PIL import Image
 import cv2
+
+
+class BinarySatelliteDataset(Dataset):
+    def __init__(
+            self,
+            im_paths,
+            mask_paths,
+            mean,
+            std,
+            fg_color,
+            transform=None
+    ):
+        self.im_paths = im_paths
+        self.mask_paths = mask_paths
+        self.mean = mean
+        self.std = std
+        self.fg_color = fg_color
+        self.transform = transform
+
+        assert len(im_paths) == len(mask_paths)
+
+    def __len__(self):
+        return len(self.im_paths)
+
+    def __getitem__(self, idx):
+        img = cv2.imread(self.im_paths[idx])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.mask_paths[idx])
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+
+        mask = np.all(mask == self.fg_color, axis=-1)
+        # mask = mask == self.fg_color
+        mask = mask.astype(int)
+
+        if self.transform is not None:
+            aug = self.transform(image=img, mask=mask)
+            img = Image.fromarray(aug['image'])
+            mask = aug['mask']
+
+        if self.transform is None:
+            img = Image.fromarray(img)
+
+        t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
+        img = t(img)
+        mask = torch.from_numpy(mask).long()
+
+        return img, mask
 
 
 class DroneDataset(Dataset):

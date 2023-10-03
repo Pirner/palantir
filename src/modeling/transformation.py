@@ -9,7 +9,7 @@ class TransformerConfig:
         std = [0.229, 0.224, 0.225]
 
         t_train = A.Compose([
-            A.Resize(704, 1056, interpolation=cv2.INTER_NEAREST),
+            A.Resize(608, 608, interpolation=cv2.INTER_NEAREST),
             A.HorizontalFlip(),
             A.VerticalFlip(),
             A.GridDistortion(p=0.2), A.RandomBrightnessContrast((0, 0.5), (0, 0.5)),
@@ -20,7 +20,7 @@ class TransformerConfig:
 
     @staticmethod
     def get_val_transform():
-        t_val = A.Compose([A.Resize(704, 1056, interpolation=cv2.INTER_NEAREST), A.HorizontalFlip(),
+        t_val = A.Compose([A.Resize(608, 608, interpolation=cv2.INTER_NEAREST), A.HorizontalFlip(),
                            A.GridDistortion(p=0.2)])
 
         return t_val
