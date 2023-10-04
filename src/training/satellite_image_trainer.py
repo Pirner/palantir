@@ -84,7 +84,7 @@ class SatelliteImageTrainer:
 
         eta_0 = 0.001
         max_lr = 1e-3
-        epoch = 1
+        epoch = 100
         weight_decay = 1e-4
 
         criterion = nn.CrossEntropyLoss()
