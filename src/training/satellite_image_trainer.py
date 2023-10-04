@@ -95,12 +95,12 @@ class SatelliteImageTrainer:
 
         eta_0 = 0.001
         max_lr = 1e-3
-        epoch = 100
+        epoch = 3
         weight_decay = 1e-4
 
         criterion = nn.CrossEntropyLoss()
-        criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
-        criterion = DiceBCELoss()
+        criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=False)
+        # criterion = DiceBCELoss()
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
