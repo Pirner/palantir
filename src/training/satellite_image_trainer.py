@@ -11,6 +11,9 @@ import torch.nn as nn
 from src.modeling.data_loading import BinarySatelliteDataset
 from src.modeling.transformation import TransformerConfig
 from src.modeling.training import fit, DroneTrainer
+from src.modeling.custom_losses import DiceBCELoss
+from src.utils import move_to
+from src.constants import forest_seg_h, forest_seg_w
 
 
 class SatelliteImageTrainer:
@@ -79,16 +82,23 @@ class SatelliteImageTrainer:
             activation='sigmoid',
         )
 
+        eta_0 = 0.001
         max_lr = 1e-3
-        epoch = 50
+        epoch = 1
         weight_decay = 1e-4
 
         criterion = nn.CrossEntropyLoss()
         criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
+        criterion = DiceBCELoss()
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
                                                         steps_per_epoch=len(train_loader))
+
+        optimizer = torch.optim.Adam([
+            dict(params=model.parameters(), lr=eta_0),
+        ])
+        scheduler = None
 
         trainer = DroneTrainer(
             device=self.device,
@@ -98,4 +108,18 @@ class SatelliteImageTrainer:
             model_path='model_softmax.pt'
         )
         trainer.train_model(epoch, model, train_loader, val_loader)
+
+        inputs = torch.randn(1, 3, forest_seg_h, forest_seg_w)
+        inputs = move_to(inputs, self.device)
+
+        for layer in model.children():
+            weights = list(layer.parameters())
+            try:
+                layer.set_swish(memory_efficient=False)
+            except Exception as e:
+                print(str(e))
+
+        traced_model = torch.jit.trace(model, inputs)
+        traced_model.save('traced_model.pt')
+
         exit(0)

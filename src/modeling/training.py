@@ -62,7 +62,8 @@ class DroneTrainer:
 
             # step the learning rate
             self.lrs.append(get_lr(self.optimizer))
-            self.scheduler.step()
+            if self.scheduler:
+                self.scheduler.step()
 
             running_loss += loss.item()
 
