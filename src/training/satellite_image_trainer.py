@@ -36,7 +36,7 @@ class SatelliteImageTrainer:
         im_paths = glob.glob(os.path.join(train_path, '**/*sat*.jpg'), recursive=True)
         mask_paths = glob.glob(os.path.join(train_path, '**/*mask*.png'), recursive=True)
 
-        train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.33)
+        train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
 
         # setup training
         mean = [0.485, 0.456, 0.406]
@@ -68,7 +68,7 @@ class SatelliteImageTrainer:
             encoder_weights='imagenet',
             classes=1,
             # activation=None,
-            activation='softmax',
+            activation='sigmoid',
             encoder_depth=5,
             decoder_channels=[256, 128, 64, 32, 16],
         )

@@ -9,10 +9,10 @@ from src.modeling.transformation import TransformerConfig
 
 
 def main():
-    model_path = r'C:\projects\palantir\models\traced_model_1.pt'
+    model_path = r'C:\data\palantir\models\binary_forest\00\model_softmax_traced.pt'
     traced_model = torch.jit.load(model_path)
 
-    im_paths = glob.glob(os.path.join(r'C:\projects\palantir\sample_inference_data', '**/*.jpg'), recursive=True)
+    im_paths = glob.glob(os.path.join(r'C:\data\palantir\src_data\deep_globe\test', '**/*.jpg'), recursive=True)
     val_transforms = TransformerConfig.get_val_transform()
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -27,6 +27,8 @@ def main():
         preprocessed = t(preprocessed)
         preprocessed = torch.unsqueeze(preprocessed, 0)
         y_hat = traced_model(preprocessed)
+        y_hat_squeezed = torch.squeeze(y_hat)
+        prediction = y_hat_squeezed.detach().cpu().numpy()
         exit(0)
 
 
