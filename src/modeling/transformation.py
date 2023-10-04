@@ -22,7 +22,7 @@ class TransformerConfig:
 
     @staticmethod
     def get_val_transform():
-        t_val = A.Compose([A.Resize(608, 608, interpolation=cv2.INTER_NEAREST), A.HorizontalFlip(),
+        t_val = A.Compose([A.Resize(forest_seg_h, forest_seg_w, interpolation=cv2.INTER_NEAREST), A.HorizontalFlip(),
                            A.GridDistortion(p=0.2)])
 
         return t_val

@@ -1,5 +1,5 @@
-forest_seg_h = 704
-forest_seg_w = 704
+forest_seg_h = 256
+forest_seg_w = 256
 forest_backbone = 'efficientnet-b3'
 
 incorrect_segm_maps = ['271941_sat.jpg', '730821_sat.jpg', '256189_sat.jpg', '925382_sat.jpg', '458776_sat.jpg',
