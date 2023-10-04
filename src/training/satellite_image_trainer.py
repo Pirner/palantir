@@ -13,7 +13,7 @@ from src.modeling.transformation import TransformerConfig
 from src.modeling.training import fit, DroneTrainer
 from src.modeling.custom_losses import DiceBCELoss
 from src.utils import move_to
-from src.constants import forest_seg_h, forest_seg_w
+from src.constants import forest_seg_h, forest_seg_w, incorrect_segm_maps
 
 
 class SatelliteImageTrainer:
@@ -36,10 +36,21 @@ class SatelliteImageTrainer:
         :param train_path:
         :return:
         """
+        im_ids = [x.split('_')[0] for x in incorrect_segm_maps]
+
+        cleaned_im_paths = []
+        cleaned_mask_paths = []
+
         im_paths = glob.glob(os.path.join(train_path, '**/*sat*.jpg'), recursive=True)
         mask_paths = glob.glob(os.path.join(train_path, '**/*mask*.png'), recursive=True)
 
-        train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
+        for im_p, mask_p in zip(im_paths, mask_paths):
+            if im_p.split(os.sep)[-1] in incorrect_segm_maps:
+                continue
+            cleaned_im_paths.append(im_p)
+            cleaned_mask_paths.append(mask_p)
+
+        train_ims, val_ims, train_masks, val_masks = train_test_split(cleaned_im_paths, cleaned_mask_paths, test_size=0.1)
 
         # setup training
         mean = [0.485, 0.456, 0.406]
