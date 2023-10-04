@@ -67,6 +67,12 @@ def main():
         encoder_depth=5,
         decoder_channels=[256, 128, 64, 32, 16],
     )
+    model = smp.FPN(
+        encoder_name=ENCODER,
+        encoder_weights=ENCODER_WEIGHTS,
+        classes=1,
+        activation=ACTIVATION,
+    )
 
     max_lr = 1e-3
     epoch = 50

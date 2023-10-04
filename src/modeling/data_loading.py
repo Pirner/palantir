@@ -39,7 +39,8 @@ class BinarySatelliteDataset(Dataset):
 
         mask = np.all(mask == self.fg_color, axis=-1)
         # mask = mask == self.fg_color
-        mask = mask.astype(int)
+        mask = mask.astype(float)
+        mask = np.expand_dims(mask, axis=-1)
 
         if self.transform is not None:
             aug = self.transform(image=img, mask=mask)
@@ -52,6 +53,9 @@ class BinarySatelliteDataset(Dataset):
         t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
         img = t(img)
         mask = torch.from_numpy(mask).long()
+        mask = mask.permute(2, 0, 1)  # channels first
+        # return a tuple of the image and its mask
+        mask = mask.type(torch.FloatTensor)
 
         return img, mask
 

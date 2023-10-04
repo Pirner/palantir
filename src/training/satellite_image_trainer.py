@@ -72,6 +72,12 @@ class SatelliteImageTrainer:
             encoder_depth=5,
             decoder_channels=[256, 128, 64, 32, 16],
         )
+        model = smp.FPN(
+            encoder_name=self.backbone,
+            encoder_weights='imagenet',
+            classes=1,
+            activation='sigmoid',
+        )
 
         max_lr = 1e-3
         epoch = 50
