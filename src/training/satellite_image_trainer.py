@@ -40,8 +40,8 @@ class SatelliteImageTrainer:
         :return:
         """
 
-        im_paths = glob.glob(os.path.join(train_path, 'images', '**/**.jpg'), recursive=True)
-        mask_paths = glob.glob(os.path.join(train_path, 'masks', '**/**.jpg'), recursive=True)
+        im_paths = glob.glob(os.path.join(train_path, 'images', '**/**.jpg'), recursive=True)[:20]
+        mask_paths = glob.glob(os.path.join(train_path, 'masks', '**/**.jpg'), recursive=True)[:20]
 
         train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
 
@@ -70,6 +70,17 @@ class SatelliteImageTrainer:
         train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=True)
 
+        # for ims, masks in train_loader:
+        #     import numpy as np
+        #     sample = ims[0].detach().cpu().numpy()
+        #     sample_mask = masks[0].detach().cpu().numpy()
+        #     sample_mask = np.moveaxis(sample_mask, 0, -1)
+        #     sample = np.moveaxis(sample, 0, -1)
+        #     from matplotlib import pyplot as plt
+        #     plt.imshow(sample)
+        #     plt.show()
+        #     exit(0)
+
         # model = smp.Unet(
         #     self.backbone,
         #     encoder_weights='imagenet',
@@ -79,53 +90,53 @@ class SatelliteImageTrainer:
         #     encoder_depth=5,
         #     decoder_channels=[256, 128, 64, 32, 16],
         # )
-        # model = smp.FPN(
-        #     encoder_name=self.backbone,
-        #     encoder_weights=None,
-        #     classes=1,
-        #     activation='sigmoid',
+        model = smp.FPN(
+            encoder_name=self.backbone,
+            encoder_weights=None,
+            classes=1,
+            activation='sigmoid',
+        )
+        model = smp.Unet('mobilenet_v2', encoder_weights='imagenet', classes=1, activation='sigmoid', encoder_depth=5,
+                         decoder_channels=[256, 128, 64, 32, 16])
+
+        # model = ForestModel("FPN", "resnet34", in_channels=3, out_classes=1)
+        # trainer = pl.Trainer(
+        #     # gpus=1,
+        #     max_epochs=50,
         # )
+        #
+        # trainer.fit(
+        #     model,
+        #     train_dataloaders=train_loader,
+        #     val_dataloaders=val_loader,
+        # )
+        # valid_metrics = trainer.validate(model, dataloaders=val_loader, verbose=False)
+        # pprint(valid_metrics)
 
-        model = ForestModel("FPN", "resnet34", in_channels=3, out_classes=1)
-        trainer = pl.Trainer(
-            # gpus=1,
-            max_epochs=50,
-        )
-
-        trainer.fit(
-            model,
-            train_dataloaders=train_loader,
-            val_dataloaders=val_loader,
-        )
-        valid_metrics = trainer.validate(model, dataloaders=val_loader, verbose=False)
-        pprint(valid_metrics)
-
-        # eta_0 = 0.001
+        eta_0 = 0.001
         # max_lr = 1e-3
-        # epoch = 50
+        epoch = 50
         # weight_decay = 1e-4
         #
         # criterion = nn.CrossEntropyLoss()
         # criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=False)
-        # # criterion = DiceBCELoss()
+        criterion = DiceBCELoss()
         #
         # # optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
         # # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
         # #                                                 steps_per_epoch=len(train_loader))
         #
-        # optimizer = torch.optim.Adam([
-        #     dict(params=model.parameters(), lr=eta_0),
-        # ])
-        # scheduler = None
+        optimizer = torch.optim.Adam([dict(params=model.parameters(), lr=eta_0), ])
+        scheduler = None
         #
-        # trainer = DroneTrainer(
-        #     device=self.device,
-        #     optimizer=optimizer,
-        #     scheduler=scheduler,
-        #     criterion=criterion,
-        #     model_path='model_softmax.pt'
-        # )
-        # trainer.train_model(epoch, model, train_loader, val_loader)
+        trainer = DroneTrainer(
+            device=self.device,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            criterion=criterion,
+            model_path='model_softmax.pt'
+        )
+        trainer.train_model(epoch, model, train_loader, val_loader)
         #
         # inputs = torch.randn(1, 3, forest_seg_h, forest_seg_w)
         # inputs = move_to(inputs, self.device)

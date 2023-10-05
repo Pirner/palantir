@@ -277,3 +277,207 @@ def fit(epochs, model, train_loader, val_loader, criterion, optimizer, scheduler
                'lrs': lrs}
     print('Total time: {:.2f} m'.format((time.time() - fit_time) / 60))
     return history
+
+
+
+import time
+import os
+
+import torch
+import pandas as pd
+from tqdm import tqdm
+import numpy as np
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+
+def move_to(obj, device):
+    """
+    move the object to the desired device (cpu, cuda)
+    :param obj: object to move
+    :param device: destination to transport to
+    :return:
+    """
+    if hasattr(obj, "to"):
+        return obj.to(device)
+    elif isinstance(obj, list):
+        return [move_to(x, device) for x in obj]
+    elif isinstance(obj, tuple):
+        return tuple(move_to(list(obj), device))
+    elif isinstance(obj, set):
+        return set(move_to(list(obj), device))
+    elif isinstance(obj, dict):
+        to_ret = dict()
+        for key, value in obj.items():
+            to_ret[move_to(key, device)] = move_to(value, device)
+        return to_ret
+    else:
+        return obj
+
+
+class ForestTrainer:
+    def __init__(self, im_h: int, im_w: int, run_path: str):
+        """
+        void trainer class to train a model for void detection
+        :param im_h: height of input image
+        :param im_w: width of input image
+        :param run_path: directory where we store all the run data
+        """
+        self.im_h = im_h
+        self.im_w = im_w
+        self.run_path = run_path
+
+    def run_epoch(self, model, optimizer, data_loader, loss_func, device, results, score_funcs, prefix="", desc=None):
+        """
+        run a single epoch for training
+        :param model: model to train
+        :param optimizer: optimizer to optimize with
+        :param data_loader: data loader to run the epoch against
+        :param loss_func: loss function to perform training
+        :param device: device to train on
+        :param results: result data frame
+        :param score_funcs: score functions which measure us (metrics)
+        :param prefix: prefix for the namings
+        :param desc: ??
+        :return:
+        """
+        running_loss = []
+        y_true = []
+        y_pred = []
+        start = time.time()
+        for inputs, labels in tqdm(data_loader, desc=desc, leave=False):
+            # Move the batch to the device we are using.
+            inputs = move_to(inputs, device)
+            labels = move_to(labels, device)
+
+            y_hat = model(inputs)  # this just computed f_Θ(x(i))
+            # Compute loss.
+            loss = loss_func(y_hat, labels)
+
+            if model.training:
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+
+            # Now we are just grabbing some information we would like to have
+            running_loss.append(loss.item())
+
+            if len(score_funcs) > 0 and isinstance(labels, torch.Tensor):
+                # moving labels & predictions back to CPU for computing / storing predictions
+                labels = labels.detach().cpu().numpy()
+                y_hat = y_hat.detach().cpu().numpy()
+                # add to predictions so far
+                y_true.extend(labels.tolist())
+                y_pred.extend(y_hat.tolist())
+        # end training epoch
+        end = time.time()
+
+        y_pred = np.asarray(y_pred)
+
+        y_pred = y_pred >= 0.5
+        y_pred = y_pred.astype(int)
+
+        y_true = np.asarray(y_true)
+        y_true = y_true.astype(int)
+
+        y_pred = torch.from_numpy(y_pred)
+        y_true = torch.from_numpy(y_true)
+
+        results[prefix + " loss"].append(np.mean(running_loss))
+        for name, score_func in score_funcs.items():
+            try:
+                results[prefix + " " + name].append(score_func(y_pred, y_true).detach().cpu().numpy())
+            except Exception as e:
+                results[prefix + " " + name].append(float("NaN"))
+                print('failed on metrich {0} with {1}'.format(name, str(e)))
+        return end - start  # time spent on epoch
+
+    def train_network(self, model, loss_func, train_loader, val_loader=None, test_loader=None,
+                      score_funcs=None, epochs=50,
+                      device="cpu", checkpoint_file=None, optimizer=None, lr_schedule=None, model_name='model'):
+        """
+        train an entire network
+        :param model: model to train the network
+        :param loss_func: loss function for training
+        :param train_loader: training data loader
+        :param val_loader: validation data loader
+        :param test_loader: test data loader
+        :param score_funcs: score functions
+        :param epochs: epochs to run
+        :param device: device to perform computations on
+        :param checkpoint_file: filepath for the checkpoint
+        :param optimizer: optimizer for optimization
+        :param lr_schedule: learning rate schedule
+        :return:
+        """
+        to_track = ["epoch", "total time", "train loss", "learning_rate"]
+        if test_loader is not None:
+            to_track.append("test loss")
+        for eval_score in score_funcs:
+            to_track.append("train " + eval_score)
+            if test_loader is not None:
+                to_track.append("test " + eval_score)
+
+        total_train_time = 0  # How long have we spent in the training loop?
+        results = {}
+        # Initialize every item with an empty list
+        for item in to_track:
+            results[item] = []
+
+        # SGD is Stochastic Gradient Decent.
+        # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+        if optimizer is None:
+            optimizer = torch.optim.AdamW(model.parameters())
+
+        # Place the model on the correct compute resource (CPU or GPU)
+        model.to(device)
+        for epoch in tqdm(range(epochs), desc="Epoch"):
+            model = model.train()  # Put our model in training mode
+
+            total_train_time += self.run_epoch(model, optimizer, train_loader, loss_func, device, results, score_funcs,
+                                               prefix="train", desc="Training")
+
+            results["total time"].append(total_train_time)
+            results["epoch"].append(epoch)
+            results["learning_rate"].append(get_lr(optimizer))
+
+            if test_loader is not None:
+                model = model.eval()
+                with torch.no_grad():
+                    self.run_epoch(model, optimizer, test_loader, loss_func, device, results, score_funcs,
+                                   prefix="test", desc="Testing")
+
+            # In PyTorch, the convention is to update the learning rate after every epoch
+            if lr_schedule is not None:
+                if isinstance(lr_schedule, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    lr_schedule.step(results["val loss"][-1])
+                else:
+                    lr_schedule.step()
+
+            if checkpoint_file is not None:
+                model_path = os.path.join(checkpoint_file, '{0}.pth'.format(model_name))
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'results': results
+                }, model_path)
+
+        # store traced model
+        inputs = torch.randn(1, 3, self.im_h, self.im_w)
+        inputs = move_to(inputs, device)
+
+        for layer in model.children():
+            weights = list(layer.parameters())
+            try:
+                layer.set_swish(memory_efficient=False)
+            except Exception as e:
+                print(str(e))
+
+        traced_model = torch.jit.trace(model, inputs)
+        traced_model.save(os.path.join(checkpoint_file, '{0}_traced.pt'.format(model_name)))
+
+        return pd.DataFrame.from_dict(results)

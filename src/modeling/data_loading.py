@@ -16,14 +16,13 @@ class BinarySatelliteDataset(Dataset):
             mask_paths,
             mean,
             std,
-            fg_color,
             transform=None
     ):
         self.im_paths = im_paths
         self.mask_paths = mask_paths
         self.mean = mean
         self.std = std
-        self.fg_color = fg_color
+        # self.fg_color = fg_color
         self.transform = transform
 
         assert len(im_paths) == len(mask_paths)

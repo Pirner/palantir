@@ -11,7 +11,7 @@ def pixel_accuracy(output, mask):
     return accuracy
 
 
-def mIoU(pred_mask, mask, smooth=1e-10, n_classes=2):
+def mIoU(pred_mask, mask, smooth=1e-10, n_classes=1):
     with torch.no_grad():
         pred_mask = F.softmax(pred_mask, dim=1)
         pred_mask = torch.argmax(pred_mask, dim=1)
