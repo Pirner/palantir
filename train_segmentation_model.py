@@ -6,8 +6,8 @@ from src.constants import forest_backbone
 
 def main():
     fg_color = 0, 255, 0
-    dataset_src = r'C:\data\palantir\forest_segmentation'
-    trainer = SatelliteImageTrainer(fg_color, batch_size=1, backbone=forest_backbone)
+    dataset_src = r'E:\projects\palantir\forest_segmentation'
+    trainer = SatelliteImageTrainer(fg_color, batch_size=16, backbone=forest_backbone)
 
     trainer.train_model(train_path=dataset_src)
 

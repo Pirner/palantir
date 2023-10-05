@@ -1,7 +1,9 @@
 import os
 import glob
 from typing import Tuple
+from pprint import pprint
 
+import pytorch_lightning as pl
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
@@ -14,6 +16,7 @@ from src.modeling.training import fit, DroneTrainer
 from src.modeling.custom_losses import DiceBCELoss
 from src.utils import move_to
 from src.constants import forest_seg_h, forest_seg_w, incorrect_segm_maps
+from src.modeling.smp_doc_model import ForestModel
 
 
 class SatelliteImageTrainer:
@@ -67,60 +70,74 @@ class SatelliteImageTrainer:
         train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=self.batch_size, shuffle=True)
 
-        model = smp.Unet(
-            self.backbone,
-            encoder_weights='imagenet',
-            classes=1,
-            # activation=None,
-            activation='sigmoid',
-            encoder_depth=5,
-            decoder_channels=[256, 128, 64, 32, 16],
+        # model = smp.Unet(
+        #     self.backbone,
+        #     encoder_weights='imagenet',
+        #     classes=1,
+        #     # activation=None,
+        #     activation='sigmoid',
+        #     encoder_depth=5,
+        #     decoder_channels=[256, 128, 64, 32, 16],
+        # )
+        # model = smp.FPN(
+        #     encoder_name=self.backbone,
+        #     encoder_weights=None,
+        #     classes=1,
+        #     activation='sigmoid',
+        # )
+
+        model = ForestModel("FPN", "resnet34", in_channels=3, out_classes=1)
+        trainer = pl.Trainer(
+            # gpus=1,
+            max_epochs=50,
         )
-        model = smp.FPN(
-            encoder_name=self.backbone,
-            encoder_weights='imagenet',
-            classes=1,
-            activation='sigmoid',
+
+        trainer.fit(
+            model,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
         )
+        valid_metrics = trainer.validate(model, dataloaders=val_loader, verbose=False)
+        pprint(valid_metrics)
 
-        eta_0 = 0.001
-        max_lr = 1e-3
-        epoch = 3
-        weight_decay = 1e-4
-
-        criterion = nn.CrossEntropyLoss()
-        criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=False)
-        # criterion = DiceBCELoss()
-
-        optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
-                                                        steps_per_epoch=len(train_loader))
-
-        optimizer = torch.optim.Adam([
-            dict(params=model.parameters(), lr=eta_0),
-        ])
-        scheduler = None
-
-        trainer = DroneTrainer(
-            device=self.device,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            criterion=criterion,
-            model_path='model_softmax.pt'
-        )
-        trainer.train_model(epoch, model, train_loader, val_loader)
-
-        inputs = torch.randn(1, 3, forest_seg_h, forest_seg_w)
-        inputs = move_to(inputs, self.device)
-
-        for layer in model.children():
-            weights = list(layer.parameters())
-            try:
-                layer.set_swish(memory_efficient=False)
-            except Exception as e:
-                print(str(e))
-
-        traced_model = torch.jit.trace(model, inputs)
-        traced_model.save('traced_model.pt')
-
-        exit(0)
+        # eta_0 = 0.001
+        # max_lr = 1e-3
+        # epoch = 50
+        # weight_decay = 1e-4
+        #
+        # criterion = nn.CrossEntropyLoss()
+        # criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=False)
+        # # criterion = DiceBCELoss()
+        #
+        # # optimizer = torch.optim.AdamW(model.parameters(), lr=max_lr, weight_decay=weight_decay)
+        # # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, epochs=epoch,
+        # #                                                 steps_per_epoch=len(train_loader))
+        #
+        # optimizer = torch.optim.Adam([
+        #     dict(params=model.parameters(), lr=eta_0),
+        # ])
+        # scheduler = None
+        #
+        # trainer = DroneTrainer(
+        #     device=self.device,
+        #     optimizer=optimizer,
+        #     scheduler=scheduler,
+        #     criterion=criterion,
+        #     model_path='model_softmax.pt'
+        # )
+        # trainer.train_model(epoch, model, train_loader, val_loader)
+        #
+        # inputs = torch.randn(1, 3, forest_seg_h, forest_seg_w)
+        # inputs = move_to(inputs, self.device)
+        #
+        # for layer in model.children():
+        #     weights = list(layer.parameters())
+        #     try:
+        #         layer.set_swish(memory_efficient=False)
+        #     except Exception as e:
+        #         print(str(e))
+        #
+        # traced_model = torch.jit.trace(model, inputs)
+        # traced_model.save('traced_model.pt')
+        #
+        # exit(0)

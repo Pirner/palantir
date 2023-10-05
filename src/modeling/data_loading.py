@@ -51,7 +51,8 @@ class BinarySatelliteDataset(Dataset):
             img = Image.fromarray(img)
 
         t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
-        img = t(img)
+        t = T.Compose([T.ToTensor(), ])
+        img = t(img) 
         mask = torch.from_numpy(mask).long()
         mask = mask.permute(2, 0, 1)  # channels first
         # return a tuple of the image and its mask
