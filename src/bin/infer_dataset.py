@@ -12,11 +12,12 @@ from src.modeling.transformation import TransformerConfig
 
 
 def main():
-    model_path = r'..\..\traced_model.pt'
+    model_path = r'..\..\baseline_traced.pt'
+    dataset_path = r'C:\data\palantir\forest_segmentation\images'
     traced_model = torch.jit.load(model_path)
     result_dir = r'C:\data\palantir\results'
 
-    im_paths = glob.glob(os.path.join(r'C:\data\palantir\src_data\deep_globe\test', '**/*.jpg'), recursive=True)
+    im_paths = glob.glob(os.path.join(dataset_path, '**/*.jpg'), recursive=True)
     val_transforms = TransformerConfig.get_val_transform()
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]

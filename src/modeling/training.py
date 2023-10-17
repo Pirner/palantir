@@ -434,7 +434,8 @@ class ForestTrainer:
 
         # Place the model on the correct compute resource (CPU or GPU)
         model.to(device)
-        for epoch in tqdm(range(epochs), desc="Epoch"):
+        for epoch in range(epochs):
+            print('training epoch {0}/{1}'.format(epoch, epochs))
             model = model.train()  # Put our model in training mode
 
             total_train_time += self.run_epoch(model, optimizer, train_loader, loss_func, device, results, score_funcs,

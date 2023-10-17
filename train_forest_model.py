@@ -20,7 +20,9 @@ from src.modeling.training import ForestTrainer
 
 def main():
     dataset_src = r'E:\projects\palantir\forest_segmentation'
+    dataset_src = r'C:\data\palantir\forest_segmentation'
     im_h, im_w = 256, 256
+    batch_size = 2
     im_paths = glob.glob(os.path.join(dataset_src, 'images', '**/**.jpg'), recursive=True)
     mask_paths = glob.glob(os.path.join(dataset_src, 'masks', '**/**.jpg'), recursive=True)
     t_train = TransformerConfig.get_train_transforms()
@@ -47,8 +49,8 @@ def main():
     )
     # dataloader
 
-    train_loader = DataLoader(train_set, batch_size=2, shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=2, shuffle=True)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
 
     # model stuff
     ENCODER = 'efficientnet-b0'
