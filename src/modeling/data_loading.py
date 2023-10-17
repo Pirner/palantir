@@ -33,12 +33,12 @@ class BinarySatelliteDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.im_paths[idx])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_paths[idx], 0)
-        # mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.mask_paths[idx])
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        mask = np.all(mask == (0, 255, 0), axis=-1)
 
-        # mask = np.all(mask == self.fg_color, axis=-1)
         # mask = mask == self.fg_color
-        mask = mask.astype(float) / 255.
+        mask = mask.astype(float)
         mask = np.expand_dims(mask, axis=-1)
 
         if self.transform is not None:
@@ -51,7 +51,7 @@ class BinarySatelliteDataset(Dataset):
 
         t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
         t = T.Compose([T.ToTensor(), ])
-        img = t(img) 
+        img = t(img)
         mask = torch.from_numpy(mask).long()
         mask = mask.permute(2, 0, 1)  # channels first
         # return a tuple of the image and its mask

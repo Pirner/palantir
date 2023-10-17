@@ -13,7 +13,7 @@ from src.modeling.transformation import TransformerConfig
 
 def main():
     model_path = r'..\..\baseline_traced.pt'
-    dataset_path = r'C:\data\palantir\forest_segmentation\images'
+    dataset_path = r'C:\data\palantir\src_data\deep_globe\valid'
     traced_model = torch.jit.load(model_path)
     result_dir = r'C:\data\palantir\results'
 
@@ -23,7 +23,7 @@ def main():
     std = [0.229, 0.224, 0.225]
     print('found {0} image for inference'.format(len(im_paths)))
 
-    for i, im_p in tqdm(enumerate(im_paths)):
+    for i, im_p in tqdm(enumerate(im_paths), total=len(im_paths)):
         img = cv2.imread(im_p)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         preprocessed = val_transforms(image=img)['image']

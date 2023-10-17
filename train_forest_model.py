@@ -16,15 +16,19 @@ from src.modeling.data_loading import BinarySatelliteDataset
 from src.modeling.transformation import TransformerConfig
 from src.modeling.custom_losses import DiceBCELoss
 from src.modeling.training import ForestTrainer
+from src.constants import forest_seg_h, forest_seg_w
 
 
 def main():
     dataset_src = r'E:\projects\palantir\forest_segmentation'
     dataset_src = r'C:\data\palantir\forest_segmentation'
-    im_h, im_w = 256, 256
+    dataset_src = r'C:\data\palantir\src_data\deep_globe\train'
+    im_h, im_w = forest_seg_h, forest_seg_w
     batch_size = 2
-    im_paths = glob.glob(os.path.join(dataset_src, 'images', '**/**.jpg'), recursive=True)
-    mask_paths = glob.glob(os.path.join(dataset_src, 'masks', '**/**.jpg'), recursive=True)
+    epochs = 50
+
+    im_paths = glob.glob(os.path.join(dataset_src, '**/*sat*.jpg'), recursive=True)
+    mask_paths = glob.glob(os.path.join(dataset_src, '**/*mask*.png'), recursive=True)
     t_train = TransformerConfig.get_train_transforms()
 
     train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
@@ -74,7 +78,6 @@ def main():
     jaccard = torchmetrics.JaccardIndex(num_classes=1, task='binary')
     eta_min = 0.00001
     eta_0 = 0.0001
-    epochs = 50
 
     optimizer = torch.optim.Adam([
         dict(params=model.parameters(), lr=eta_0),
