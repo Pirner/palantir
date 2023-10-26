@@ -33,9 +33,10 @@ class BinarySatelliteDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.im_paths[idx])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_paths[idx])
-        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
-        mask = np.all(mask == (0, 255, 0), axis=-1)
+        mask = cv2.imread(self.mask_paths[idx], 0)
+        # mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        # mask = np.all(mask == (128, 0, 0), axis=-1)
+        mask = mask == 5
 
         # mask = mask == self.fg_color
         mask = mask.astype(float)

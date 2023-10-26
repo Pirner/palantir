@@ -20,33 +20,44 @@ from src.constants import forest_seg_h, forest_seg_w
 
 
 def main():
-    dataset_src = r'E:\projects\palantir\forest_segmentation'
-    dataset_src = r'C:\data\palantir\forest_segmentation'
-    dataset_src = r'C:\data\palantir\src_data\deep_globe\train'
+    dataset_root_path = r'C:\data\palantir\flooded_dataset\dataset'
+    train_dataset_src = os.path.join(dataset_root_path, 'train')
+    val_dataset_src = os.path.join(dataset_root_path, 'val')
+
     im_h, im_w = forest_seg_h, forest_seg_w
     batch_size = 2
-    epochs = 50
+    epochs = 3
 
-    im_paths = glob.glob(os.path.join(dataset_src, '**/*sat*.jpg'), recursive=True)
-    mask_paths = glob.glob(os.path.join(dataset_src, '**/*mask*.png'), recursive=True)
+    train_im_paths = glob.glob(os.path.join(train_dataset_src, '**/*train-org-img*/**.jpg'), recursive=True)
+    train_mask_paths = glob.glob(os.path.join(train_dataset_src, '**/*train-label-img*/**.png'), recursive=True)
+
+    assert len(train_im_paths) == len(train_mask_paths)
+
+    val_im_paths = glob.glob(os.path.join(val_dataset_src, '**/*val-org-img*/**.jpg'), recursive=True)
+    val_mask_paths = glob.glob(os.path.join(val_dataset_src, '**/*val-label-img*/**.png'), recursive=True)
+
+    assert len(val_im_paths) == len(val_mask_paths)
+
+    # im_paths = glob.glob(os.path.join(dataset_src, '**/*sat*.jpg'), recursive=True)
+    # mask_paths = glob.glob(os.path.join(dataset_src, '**/*mask*.png'), recursive=True)
     t_train = TransformerConfig.get_train_transforms()
 
-    train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
+    # train_ims, val_ims, train_masks, val_masks = train_test_split(im_paths, mask_paths, test_size=0.1)
 
     # setup training
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
     train_set = BinarySatelliteDataset(
-        im_paths=train_ims,
-        mask_paths=train_masks,
+        im_paths=train_im_paths,
+        mask_paths=train_mask_paths,
         mean=mean,
         std=std,
         transform=t_train,
     )
     val_set = BinarySatelliteDataset(
-        im_paths=val_ims,
-        mask_paths=val_masks,
+        im_paths=val_im_paths,
+        mask_paths=val_mask_paths,
         mean=mean,
         std=std,
         transform=t_train,
@@ -88,7 +99,7 @@ def main():
         model,
         loss_fn,
         train_loader,
-        test_loader=None,
+        test_loader=val_loader,
         epochs=epochs,
         optimizer=optimizer,
         lr_schedule=None,
