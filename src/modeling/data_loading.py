@@ -9,15 +9,23 @@ from PIL import Image
 import cv2
 
 
-class BinarySatelliteDataset(Dataset):
+class DroneWaterSegmentationDataset(Dataset):
     def __init__(
             self,
             im_paths,
             mask_paths,
-            mean,
-            std,
+            mean=0,
+            std=1,
             transform=None
     ):
+        """
+        dataset for water segmentation in flooded areas
+        :param im_paths: image paths for segmentation
+        :param mask_paths: mask paths for segmentation
+        :param mean: mean value for standardization
+        :param std: standard deviation
+        :param transform: transformation to run
+        """
         self.im_paths = im_paths
         self.mask_paths = mask_paths
         self.mean = mean
@@ -28,17 +36,27 @@ class BinarySatelliteDataset(Dataset):
         assert len(im_paths) == len(mask_paths)
 
     def __len__(self):
+        """
+        length of the dataset
+        :return:
+        """
         return len(self.im_paths)
 
     def __getitem__(self, idx):
+        """
+        get an item from the data loading
+        :param idx: index to load item from
+        :return:
+        """
         img = cv2.imread(self.im_paths[idx])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(self.mask_paths[idx], 0)
-        # mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
-        # mask = np.all(mask == (128, 0, 0), axis=-1)
-        mask = mask == 5
 
-        # mask = mask == self.fg_color
+        mask_building_flooded = mask == 1
+        mask_road_flooded = mask == 3
+        mask_water = mask == 5
+        mask = mask_road_flooded.astype(int) + mask_building_flooded.astype(int) + mask_water.astype(int)
+
         mask = mask.astype(float)
         mask = np.expand_dims(mask, axis=-1)
 
@@ -59,51 +77,3 @@ class BinarySatelliteDataset(Dataset):
         mask = mask.type(torch.FloatTensor)
 
         return img, mask
-
-
-class DroneDataset(Dataset):
-
-    def __init__(self, img_path, mask_path, X, mean, std, transform=None, patch=False):
-        self.img_path = img_path
-        self.mask_path = mask_path
-        self.X = X
-        self.transform = transform
-        self.patches = patch
-        self.mean = mean
-        self.std = std
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        img = cv2.imread(self.img_path + os.sep + self.X[idx] + '.jpg')
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mask = cv2.imread(self.mask_path + os.sep + self.X[idx] + '.png', cv2.IMREAD_GRAYSCALE)
-
-        if self.transform is not None:
-            aug = self.transform(image=img, mask=mask)
-            img = Image.fromarray(aug['image'])
-            mask = aug['mask']
-
-        if self.transform is None:
-            img = Image.fromarray(img)
-
-        t = T.Compose([T.ToTensor(), T.Normalize(self.mean, self.std)])
-        img = t(img)
-        mask = torch.from_numpy(mask).long()
-
-        if self.patches:
-            img, mask = self.tiles(img, mask)
-
-        return img, mask
-
-    def tiles(self, img, mask):
-
-        img_patches = img.unfold(1, 512, 512).unfold(2, 768, 768)
-        img_patches = img_patches.contiguous().view(3, -1, 512, 768)
-        img_patches = img_patches.permute(1, 0, 2, 3)
-
-        mask_patches = mask.unfold(0, 512, 512).unfold(1, 768, 768)
-        mask_patches = mask_patches.contiguous().view(-1, 512, 768)
-
-        return img_patches, mask_patches

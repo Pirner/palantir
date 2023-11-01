@@ -10,7 +10,7 @@ import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
 
-from src.modeling.data_loading import BinarySatelliteDataset
+from src.modeling.data_loading import DroneWaterSegmentationDataset
 from src.modeling.transformation import TransformerConfig
 from src.modeling.training import fit, DroneTrainer
 from src.modeling.custom_losses import DiceBCELoss
@@ -49,7 +49,7 @@ class SatelliteImageTrainer:
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
 
-        train_set = BinarySatelliteDataset(
+        train_set = DroneWaterSegmentationDataset(
             im_paths=train_ims,
             mask_paths=train_masks,
             mean=mean,
@@ -57,7 +57,7 @@ class SatelliteImageTrainer:
             fg_color=self.fg_color,
             transform=self.t_train,
         )
-        val_set = BinarySatelliteDataset(
+        val_set = DroneWaterSegmentationDataset(
             im_paths=val_ims,
             mask_paths=val_masks,
             mean=mean,
