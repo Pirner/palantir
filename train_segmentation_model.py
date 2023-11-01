@@ -20,13 +20,13 @@ from src.constants import forest_seg_h, forest_seg_w
 
 
 def main():
-    dataset_root_path = r'C:\data\palantir\flooded_dataset\dataset'
+    dataset_root_path = r'E:\projects\palantir\flooded_dataset\dataset'
     train_dataset_src = os.path.join(dataset_root_path, 'train')
     val_dataset_src = os.path.join(dataset_root_path, 'val')
 
     im_h, im_w = forest_seg_h, forest_seg_w
-    batch_size = 2
-    epochs = 3
+    batch_size = 16
+    epochs = 50
 
     train_im_paths = glob.glob(os.path.join(train_dataset_src, '**/*train-org-img*/**.jpg'), recursive=True)
     train_mask_paths = glob.glob(os.path.join(train_dataset_src, '**/*train-label-img*/**.png'), recursive=True)
